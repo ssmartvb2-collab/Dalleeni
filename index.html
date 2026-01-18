@@ -3,41 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dalleeni - منصة استكشاف المطاعم الذكية</title>
+    <title>Dalleeni PRO - دليلي للمطاعم</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Cairo', sans-serif; background: #0f172a; color: white; }
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        #map { height: 400px; width: 100%; border-radius: 20px; margin-bottom: 20px; }
+        #map { height: 450px; width: 100%; border-radius: 20px; z-index: 1; }
     </style>
 </head>
 <body class="p-4 md:p-8">
 
-    <div class="max-w-6xl mx-auto">
-        <h1 class="text-4xl font-bold text-center mb-10 text-indigo-400">دليلي - Dalleeni PRO</h1>
+    <div class="max-w-7xl mx-auto">
+        <header class="flex justify-between items-center mb-10 glass p-6 rounded-3xl">
+            <h1 class="text-3xl font-bold text-indigo-400">Dalleeni PRO 🚀</h1>
+            <div id="userLocation" class="text-sm text-slate-400">تحديد الموقع...</div>
+        </header>
 
-        <div class="glass p-4 rounded-3xl mb-8">
-            <h2 class="text-xl mb-4 font-bold">📍 خريطة المطاعم في العراق</h2>
-            <div id="map"></div> <p class="text-xs text-slate-400 text-center">ملاحظة: تحتاج تفعيل Google Maps API ليظهر الموقع الفعلي للمطاعم</p>
+        <div class="glass p-4 rounded-3xl mb-10 shadow-2xl">
+            <h2 class="text-xl mb-4 font-bold flex items-center">📍 خريطة استكشاف مطاعم العراق</h2>
+            <div id="map"></div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div class="glass p-8 rounded-3xl h-fit">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1 glass p-8 rounded-3xl h-fit">
                 <h2 class="text-2xl font-bold mb-6">إضافة مطعم جديد</h2>
                 <form id="addForm" class="space-y-4">
-                    <input type="text" id="name" placeholder="اسم المطعم" class="w-full p-3 bg-slate-800 rounded-xl border border-slate-700 outline-none focus:border-indigo-500" required>
-                    <input type="text" id="price" placeholder="السعر" class="w-full p-3 bg-slate-800 rounded-xl border border-slate-700 outline-none focus:border-indigo-500" required>
-                    <input type="text" id="location" placeholder="الموقع" class="w-full p-3 bg-slate-800 rounded-xl border border-slate-700 outline-none focus:border-indigo-500" required>
-                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl font-bold transition-all">إضافة للقاعدة</button>
+                    <input type="text" id="name" placeholder="اسم المطعم" class="w-full p-3 bg-slate-800 rounded-xl border border-slate-700 outline-none focus:border-indigo-500 text-white" required>
+                    <input type="text" id="price" placeholder="نطاق السعر (مثلاً: رخيص)" class="w-full p-3 bg-slate-800 rounded-xl border border-slate-700 outline-none focus:border-indigo-500 text-white" required>
+                    <input type="text" id="location" placeholder="العنوان (مثلاً: بغداد، المنصور)" class="w-full p-3 bg-slate-800 rounded-xl border border-slate-700 outline-none focus:border-indigo-500 text-white" required>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl font-bold transition-all transform active:scale-95 shadow-lg">تحديث قاعدة البيانات</button>
                 </form>
             </div>
 
-            <div class="glass p-8 rounded-3xl">
-                <h2 class="text-2xl font-bold mb-6">🍽️ المطاعم المتوفرة</h2>
-                <div id="placesList" class="space-y-4 max-h-[500px] overflow-y-auto">
-                    <p class="text-slate-400">جاري تحميل المطاعم من قاعدة البيانات...</p>
-                </div>
+            <div class="lg:col-span-2 glass p-8 rounded-3xl">
+                <h2 class="text-2xl font-bold mb-6 flex justify-between items-center">
+                    <span>🍽️ قائمة المطاعم</span>
+                    <span id="count" class="text-sm bg-indigo-500/20 text-indigo-400 px-3 py-1 rounded-full">0 مطاعم</span>
+                </h2>
+                <div id="placesList" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[600px] overflow-y-auto pr-2">
+                    </div>
             </div>
         </div>
     </div>
@@ -46,7 +53,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // بياناتك الخاصة بمشروع Dalleeni
+        // بيانات Firebase الخاصة بك (لا تغيرها)
         const firebaseConfig = {
           apiKey: "AIzaSyB81ZOJkG4NADQ4-EjVINZz0iQZtOp0DXM",
           authDomain: "dalleeni.firebaseapp.com",
@@ -60,25 +67,41 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // وظيفة العرض (الناس شراح تشوف) - Real-time
+        // إعداد الخريطة المجانية (Leaflet)
+        const map = L.map('map').setView([33.3152, 44.3661], 12); // تمركز حول بغداد
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // جلب البيانات وعرضها
         onSnapshot(collection(db, "places"), (snapshot) => {
             const list = document.getElementById('placesList');
+            const count = document.getElementById('count');
             list.innerHTML = "";
+            count.innerText = `${snapshot.size} مطاعم`;
+
             snapshot.forEach((doc) => {
                 const data = doc.data();
+                // إضافة كرت المطعم للقائمة
                 list.innerHTML += `
-                    <div class="p-4 bg-slate-800/50 rounded-2xl border border-slate-700 hover:border-indigo-500 transition-all">
-                        <h3 class="text-lg font-bold text-indigo-300">${data.Name || data.name}</h3>
-                        <div class="flex justify-between text-sm mt-2 text-slate-400">
-                            <span>💰 ${data.Price || data.price}</span>
-                            <span>📍 ${data.location}</span>
+                    <div class="p-5 bg-slate-800/40 rounded-2xl border border-slate-700 hover:border-indigo-500 transition-all shadow-sm">
+                        <h3 class="text-xl font-bold text-indigo-300">${data.Name || data.name}</h3>
+                        <p class="text-slate-400 text-sm mt-1">📍 ${data.location}</p>
+                        <div class="mt-3 flex justify-between items-center">
+                            <span class="text-emerald-400 font-bold">${data.Price || data.price}</span>
+                            <button class="text-xs text-indigo-400 underline">التفاصيل</button>
                         </div>
                     </div>
                 `;
+                
+                // إضافة نقطة على الخريطة (افتراضياً في بغداد مؤقتاً)
+                L.marker([33.3152 + (Math.random() * 0.1), 44.3661 + (Math.random() * 0.1)])
+                 .addTo(map)
+                 .bindPopup(`<b>${data.Name || data.name}</b><br>${data.location}`);
             });
         });
 
-        // وظيفة الإضافة
+        // وظيفة الإرسال
         document.getElementById('addForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             await addDoc(collection(db, "places"), {
