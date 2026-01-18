@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة المطاعم الاحترافي</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Cairo', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .glass-morphism { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .input-focus:focus { border-color: #667eea; ring: 2px; ring-color: #667eea; }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+
+    <div class="glass-morphism w-full max-w-lg p-8 rounded-3xl shadow-2xl">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">إدارة قاعدة البيانات</h1>
+            <p class="text-gray-500 mt-2 text-sm">أضف بيانات المحلات مباشرة إلى Cloud Firestore</p>
+        </div>
+
+        <form id="restaurantForm" class="space-y-6">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">اسم المنشأة التجاري</label>
+                <input type="text" id="resName" required class="w-full p-3 rounded-xl border border-gray-300 input-focus transition-all outline-none" placeholder="أدخل الاسم الكامل">
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">تصنيف الأسعار</label>
+                <select id="resPrice" class="w-full p-3 rounded-xl border border-gray-300 input-focus transition-all outline-none bg-white">
+                    <option value="رخيص">رخيص (اقتصادي)</option>
+                    <option value="متوسط">متوسط (عائلي)</option>
+                    <option value="فاخر">فاخر (VIP)</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">الموقع الجغرافي</label>
+                <input type="text" id="resLocation" required class="w-full p-3 rounded-xl border border-gray-300 input-focus transition-all outline-none" placeholder="المدينة، الحي، الشارع">
+            </div>
+
+            <button type="submit" id="submitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg flex justify-center items-center">
+                <span>تحديث قاعدة البيانات</span>
+            </button>
+        </form>
+
+        <div id="status" class="mt-4 text-center hidden p-3 rounded-lg text-sm font-medium"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // إعدادات الربط - ضع بيانات مشروعك هنا
+        const firebaseConfig = {
+            apiKey: "AIzaSy...", 
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "...",
+            appId: "..."
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const form = document.getElementById('restaurantForm');
+        const status = document.getElementById('status');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerText = "جاري الاتصال بالسيرفر...";
+
+            try {
+                await addDoc(collection(db, "places"), {
+                    name: document.getElementById('resName').value,
+                    price: document.getElementById('resPrice').value,
+                    location: document.getElementById('resLocation').value,
+                    timestamp: new Date()
+                });
+
+                status.innerText = "✅ تمت الإضافة بنجاح إلى Firestore!";
+                status.className = "mt-4 text-center p-3 rounded-lg text-sm font-medium bg-green-100 text-green-700";
+                status.classList.remove('hidden');
+                form.reset();
+            } catch (error) {
+                status.innerText = "❌ خطأ في الاتصال: " + error.message;
+                status.className = "mt-4 text-center p-3 rounded-lg text-sm font-medium bg-red-100 text-red-700";
+                status.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "تحديث قاعدة البيانات";
+            }
+        });
+    </script>
+</body>
+</html>
